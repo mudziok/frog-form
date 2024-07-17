@@ -26,3 +26,27 @@ test("Nested payload", () => {
     },
   });
 });
+
+test("Array payload", () => {
+  const formData = new FormData();
+  formData.append("interests", "Sports");
+  formData.append("interests", "Programming");
+
+  expect(formDataToPayload(formData)).toEqual({
+    interests: ["Sports", "Programming"],
+  });
+});
+
+test("Array in nesting payload", () => {
+  const formData = new FormData();
+  formData.append("name", "John Doe");
+  formData.append("details.interests", "Sports");
+  formData.append("details.interests", "Programming");
+
+  expect(formDataToPayload(formData)).toEqual({
+    name: "John Doe",
+    details: {
+      interests: ["Sports", "Programming"],
+    },
+  });
+});

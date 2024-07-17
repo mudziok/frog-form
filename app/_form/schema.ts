@@ -7,5 +7,6 @@ export const createUserSchema = z.object({
     username: z.string().min(1),
     language: z.enum(["English", "Spanish", "French"]),
     gender: z.enum(["Male", "Female", "Other"]),
+    interests: z.array(z.enum(["Sports", "Music", "Movies"])),
   }),
 });

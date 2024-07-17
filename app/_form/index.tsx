@@ -8,7 +8,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -79,6 +78,23 @@ export function useForm<TPayload extends {}, TResult extends {}>(
       return (
         <input
           id={props.name}
+          {...props}
+          name={props.name}
+          onChange={validateErrors}
+        />
+      );
+    }
+
+    function Checkbox(
+      props: {
+        name: PathsOfType<TPayload, Array<string>>;
+      } & Omit<InputHTMLAttributes<HTMLInputElement>, "name">
+    ) {
+      const { validateErrors } = useContext(FormContext);
+      return (
+        <input
+          id={props.name}
+          type="checkbox"
           {...props}
           name={props.name}
           onChange={validateErrors}
@@ -165,7 +181,7 @@ export function useForm<TPayload extends {}, TResult extends {}>(
       return <input {...props} type="submit" />;
     }
 
-    return { Form, Input, Select, Textarea, Object, Error, Submit };
+    return { Form, Input, Checkbox, Select, Textarea, Object, Error, Submit };
   });
 
   return { ...form, state };
