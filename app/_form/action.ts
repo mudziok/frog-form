@@ -5,7 +5,7 @@ import { actionHandler } from "./actionHandler";
 
 export const createUser = actionHandler({
   schema: createUserSchema,
-  action: async (data) => {
+  action: async ({ data }) => {
     console.log(data);
     return data;
   },

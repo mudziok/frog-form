@@ -3,8 +3,12 @@ import {
   HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+  createContext,
+  useCallback,
+  useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -20,6 +24,14 @@ export type PathsOfType<T, V> = T extends object
     }[keyof T]
   : never;
 
+const FormContext = createContext<{
+  errors: ZodIssue[];
+  validateErrors: () => void;
+}>({
+  errors: [],
+  validateErrors: () => {},
+});
+
 export function useForm<TPayload extends {}, TResult extends {}>(
   action: (
     state: ActionState<TPayload, TResult>,
@@ -28,82 +40,133 @@ export function useForm<TPayload extends {}, TResult extends {}>(
   validator: ZodSchema<TPayload>
 ) {
   const [state, dispatch] = useFormState(action, { status: "initial" });
-  const [errors, setErrors] = useState<ZodIssue[]>(
-    state.status === "error" ? state.errors : []
-  );
-  const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (state.status === "error") {
-      setErrors(state.errors);
-    } else {
-      setErrors([]);
+  const [form] = useState(() => {
+    function Form(
+      props: FormHTMLAttributes<HTMLFormElement> & { children: ReactNode }
+    ) {
+      const formRef = useRef<HTMLFormElement>(null);
+      const [errors, setErrors] = useState<ZodIssue[]>(
+        state.status === "error" ? state.errors : []
+      );
+
+      const validateErrors = useCallback(() => {
+        const formData = new FormData(formRef.current!);
+        const payload = formDataToPayload(formData);
+        const validation = validator.safeParse(payload);
+        if (validation.success) {
+          setErrors([]);
+        } else {
+          setErrors(validation.error.errors);
+        }
+      }, [validator, setErrors]);
+
+      return (
+        <FormContext.Provider value={{ errors, validateErrors }}>
+          <form {...props} action={dispatch} ref={formRef}>
+            {props.children}
+          </form>
+        </FormContext.Provider>
+      );
     }
-  }, [state]);
 
-  const nameErrors = errors.map((error) => ({
-    ...error,
-    name: error.path.join("."),
-  }));
+    function Input<TFieldType>(
+      props: {
+        name: PathsOfType<TPayload, TFieldType>;
+      } & Omit<InputHTMLAttributes<HTMLInputElement>, "name">
+    ) {
+      const { validateErrors } = useContext(FormContext);
+      return (
+        <input
+          id={props.name}
+          {...props}
+          name={props.name}
+          onChange={validateErrors}
+        />
+      );
+    }
 
-  function Form(
-    props: FormHTMLAttributes<HTMLFormElement> & { children: ReactNode }
-  ) {
-    return (
-      <form {...props} action={dispatch} ref={formRef} key="xd">
-        {props.children}
-      </form>
-    );
-  }
+    function Select<TFieldType>(
+      props: {
+        name: PathsOfType<TPayload, TFieldType>;
+      } & Omit<SelectHTMLAttributes<HTMLSelectElement>, "name">
+    ) {
+      const { validateErrors } = useContext(FormContext);
+      return (
+        <select
+          id={props.name}
+          {...props}
+          name={props.name}
+          onChange={validateErrors}
+        />
+      );
+    }
 
-  function Object<TFieldType>({
-    name,
-    render,
-    defaultValue,
-  }: {
-    name: PathsOfType<TPayload, TFieldType>;
-    render: (props: {
-      value: TFieldType;
-      setValue: (value: TFieldType) => void;
-    }) => JSX.Element;
-    defaultValue: TFieldType;
-  }) {
-    const [value, setValue] = useState<TFieldType>(defaultValue);
+    function Textarea<TFieldType>(
+      props: {
+        name: PathsOfType<TPayload, TFieldType>;
+      } & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "name">
+    ) {
+      const { validateErrors } = useContext(FormContext);
+      return (
+        <textarea {...props} name={props.name} onChange={validateErrors} />
+      );
+    }
 
-    return (
-      <>
-        <input name={name} type="hidden" value={JSON.stringify(value)} />
-        {render({ value, setValue })}
-      </>
-    );
-  }
-
-  function Input<TFieldType>(
-    props: {
+    function Object<TFieldType>({
+      name,
+      render,
+      defaultValue,
+    }: {
       name: PathsOfType<TPayload, TFieldType>;
-    } & InputHTMLAttributes<HTMLInputElement>
-  ) {
-    return <input {...props} name={props.name} />;
-  }
+      render: (props: {
+        value: TFieldType;
+        setValue: (value: TFieldType) => void;
+      }) => JSX.Element;
+      defaultValue: TFieldType;
+    }) {
+      const [value, setValue] = useState<TFieldType>(defaultValue);
+      const { validateErrors } = useContext(FormContext);
 
-  function Submit(props: InputHTMLAttributes<HTMLInputElement>) {
-    return <input {...props} type="submit" />;
-  }
+      return (
+        <>
+          <input
+            name={name}
+            type="hidden"
+            value={JSON.stringify(value)}
+            onChange={validateErrors}
+          />
+          {render({ value, setValue })}
+        </>
+      );
+    }
 
-  function Error(
-    props: {
-      name: PathsOfType<TPayload, any>;
-    } & HTMLAttributes<HTMLParagraphElement>
-  ) {
-    const messages = nameErrors.filter((error) =>
-      error.name.startsWith(props.name)
-    );
-    return messages.map((error) => (
-      <p key={error.name} {...props}>
-        {error.message}
-      </p>
-    ));
-  }
+    function Error(
+      props: {
+        name: PathsOfType<TPayload, any>;
+      } & HTMLAttributes<HTMLParagraphElement>
+    ) {
+      const { errors } = useContext(FormContext);
+      const nameErrors = errors.map((error) => ({
+        ...error,
+        name: error.path.join("."),
+      }));
+      const messages = nameErrors.filter((error) =>
+        error.name.startsWith(props.name)
+      );
+      return messages.map((error) => (
+        <p key={error.name} {...props}>
+          {error.message}
+        </p>
+      ));
+    }
 
-  return { Form, Object, Input, Submit, Error, state };
+    function Submit(props: InputHTMLAttributes<HTMLInputElement>) {
+      return <input {...props} type="submit" />;
+    }
+
+    return { Form, Input, Select, Textarea, Object, Error, Submit };
+  });
+
+  return { ...form, state };
 }

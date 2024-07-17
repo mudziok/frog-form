@@ -15,13 +15,34 @@ export type ActionState<TPayload extends {}, TResult extends {}> =
       >["error"]["errors"];
     };
 
+function isObject(value: any): value is Record<string, any> {
+  return typeof value === "object" && value !== null;
+}
+
+function deepMerge<T extends Record<string, any>>(target: T, source: T): T {
+  const output = { ...target };
+
+  for (const key in source) {
+    const sourceValue = source[key];
+    const targetValue = target[key];
+
+    if (isObject(sourceValue) && isObject(targetValue)) {
+      output[key] = deepMerge(targetValue, sourceValue);
+    } else {
+      output[key] = sourceValue;
+    }
+  }
+
+  return output;
+}
+
 export function formDataToPayload(formData: FormData): any {
   const entries = formData.entries();
-  const payload: any = {};
+  let payload: any = {};
 
   for (const [key, rawValue] of entries) {
     const value = rawValue as string;
-    const [root, ...nested] = key.split(".");
+    const nested = key.split(".");
 
     const evaluateValue = (value: string) => {
       if (value.startsWith("{")) {
@@ -31,11 +52,11 @@ export function formDataToPayload(formData: FormData): any {
       }
     };
 
-    const nestedValue = nested.reduce((acc, key) => {
+    const nestedValue = nested.reduceRight((acc, key) => {
       return { [key]: acc };
     }, evaluateValue(value) as any);
 
-    payload[root] = nestedValue;
+    payload = deepMerge(payload, nestedValue);
   }
 
   return payload;
@@ -52,11 +73,12 @@ export function actionHandler<TPayload extends {}, TResult extends {}>({
   formData: FormData
 ) => Promise<ActionState<TPayload, TResult>> {
   return async (state, formData) => {
+    console.log(formData);
     const payload = formDataToPayload(formData);
 
     const validation = schema.safeParse(payload);
     if (validation.success) {
-      const result = await action({ data: payload });
+      const result = await action({ data: validation.data });
       return { status: "success", result };
     } else {
       return { status: "error", errors: validation.error.errors };

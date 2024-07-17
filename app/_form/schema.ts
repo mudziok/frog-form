@@ -5,5 +5,7 @@ export const createUserSchema = z.object({
   password: z.string().min(1),
   details: z.object({
     username: z.string().min(1),
+    language: z.enum(["English", "Spanish", "French"]),
+    gender: z.enum(["Male", "Female", "Other"]),
   }),
 });
