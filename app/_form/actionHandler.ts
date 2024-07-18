@@ -1,4 +1,5 @@
 import { SafeParseReturnType, ZodSchema, z } from "zod";
+import { zfd } from "zod-form-data";
 
 export type ActionState<TPayload extends {}, TResult extends {}> =
   | {
@@ -90,19 +91,19 @@ export function formDataToPayload(formData: FormData): any {
   return payload;
 }
 
-export function actionHandler<TPayload extends {}, TResult extends {}>({
+export function actionHandler<TSchema extends ZodSchema, TResult extends {}>({
   action,
   schema,
 }: {
-  action: ({}: { data: TPayload }) => Promise<TResult>;
-  schema: ZodSchema<TPayload>;
+  schema: TSchema;
+  action: ({}: { data: z.infer<TSchema> }) => Promise<TResult>;
 }): (
-  state: ActionState<TPayload, TResult>,
+  state: ActionState<z.infer<TSchema>, TResult>,
   formData: FormData
-) => Promise<ActionState<TPayload, TResult>> {
+) => Promise<ActionState<z.infer<TSchema>, TResult>> {
   return async (state, formData) => {
-    const payload = formDataToPayload(formData);
-    const validation = schema.safeParse(payload);
+    // const payload = formDataToPayload(formData);
+    const validation = zfd.formData(schema).safeParse(formData);
 
     if (validation.success) {
       const result = await action({ data: validation.data });

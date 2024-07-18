@@ -12,8 +12,9 @@ import {
   useState,
 } from "react";
 import { useFormState } from "react-dom";
-import { ActionState, formDataToPayload } from "./actionHandler";
-import { ZodIssue, ZodSchema } from "zod";
+import { ActionState } from "./actionHandler";
+import { ZodIssue, ZodSchema, z } from "zod";
+import { zfd } from "zod-form-data";
 
 export type PathsOfType<T, V> = T extends object
   ? {
@@ -31,12 +32,16 @@ const FormContext = createContext<{
   validateErrors: () => {},
 });
 
-export function useForm<TPayload extends {}, TResult extends {}>(
+export function useForm<
+  TSchema extends ZodSchema,
+  TResult extends {},
+  TPayload extends z.infer<TSchema>
+>(
   action: (
     state: ActionState<TPayload, TResult>,
     formData: FormData
   ) => Promise<ActionState<TPayload, TResult>>,
-  validator: ZodSchema<TPayload>
+  validator: TSchema
 ) {
   const [state, dispatch] = useFormState(action, { status: "initial" });
 
@@ -51,8 +56,7 @@ export function useForm<TPayload extends {}, TResult extends {}>(
 
       const validateErrors = useCallback(() => {
         const formData = new FormData(formRef.current!);
-        const payload = formDataToPayload(formData);
-        const validation = validator.safeParse(payload);
+        const validation = zfd.formData(validator).safeParse(formData);
         if (validation.success) {
           setErrors([]);
         } else {

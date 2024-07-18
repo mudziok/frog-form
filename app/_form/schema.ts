@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { zfd } from "zod-form-data";
 
 export const createUserSchema = z.object({
-  email: z.string().min(1),
-  password: z.string().min(1),
+  email: zfd.text(),
+  password: zfd.text(),
   details: z.object({
-    username: z.string().min(1),
+    username: zfd.text(),
     language: z.enum(["English", "Spanish", "French"]),
     gender: z.enum(["Male", "Female", "Other"]),
-    interests: z.array(z.enum(["Sports", "Music", "Movies"])),
+    interests: zfd.repeatableOfType(z.enum(["Sports", "Programming"])),
   }),
 });

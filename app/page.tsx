@@ -6,13 +6,17 @@ import { createUserSchema } from "./_form/schema";
 import { createUser } from "./_form/action";
 import { ReactNode } from "react";
 
-function InputField<TPayload extends {}, TResult extends {}>({
+function InputField<
+  TSchema extends z.ZodSchema,
+  TPayload extends z.infer<TSchema>,
+  TResult extends {}
+>({
   f,
   name,
   label,
   className = "",
 }: {
-  f: ReturnType<typeof useForm<TPayload, TResult>>;
+  f: ReturnType<typeof useForm<TSchema, TResult, TPayload>>;
   name: PathsOfType<TPayload, string>;
   label: string;
   className?: string;
@@ -27,14 +31,18 @@ function InputField<TPayload extends {}, TResult extends {}>({
   );
 }
 
-function MetaField<TPayload extends {}, TResult extends {}>({
+function MetaField<
+  TSchema extends z.ZodSchema,
+  TPayload extends z.infer<TSchema>,
+  TResult extends {}
+>({
   f,
   name,
   label,
   children,
   className = "",
 }: {
-  f: ReturnType<typeof useForm<TPayload, TResult>>;
+  f: ReturnType<typeof useForm<TSchema, TResult, TPayload>>;
   name: PathsOfType<TPayload, any>;
   label: string;
   children: ReactNode;
@@ -54,11 +62,15 @@ function MetaField<TPayload extends {}, TResult extends {}>({
   );
 }
 
-function UserDetailFields<TPayload extends {}, TResult extends {}>({
+function UserDetailFields<
+  TSchema extends z.ZodSchema,
+  TPayload extends z.infer<TSchema>,
+  TResult extends {}
+>({
   f,
   name,
 }: {
-  f: ReturnType<typeof useForm<TPayload, TResult>>;
+  f: ReturnType<typeof useForm<TSchema, TResult, TPayload>>;
   name: {
     username: PathsOfType<TPayload, string>;
     language: PathsOfType<
@@ -157,11 +169,12 @@ export default function Home() {
         className="flex-1 border rounded-md"
       >
         <div className="flex flex-col gap-2">
-          {createUserSchema.shape.details.shape.interests.element.options.map(
-            (value) => (
+          {createUserSchema.shape.details.shape.interests
+            .innerType()
+            .element.options.map((value) => (
               <div className="flex items-center" key={value}>
                 <f.Checkbox
-                  name={"details.interests[]"}
+                  name={"details.interests"}
                   value={value}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />
@@ -172,8 +185,7 @@ export default function Home() {
                   {value}
                 </label>
               </div>
-            )
-          )}
+            ))}
         </div>
       </MetaField>
 
