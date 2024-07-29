@@ -164,7 +164,7 @@ export default function Home() {
 
       <MetaField
         f={f}
-        name={"details.interests"}
+        name="details.interests"
         label="Interests"
         className="flex-1 border rounded-md"
       >
@@ -174,7 +174,7 @@ export default function Home() {
             .element.options.map((value) => (
               <div className="flex items-center" key={value}>
                 <f.Checkbox
-                  name={"details.interests"}
+                  name="details.interests"
                   value={value}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />

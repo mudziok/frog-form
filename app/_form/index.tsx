@@ -8,6 +8,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -26,9 +27,13 @@ export type PathsOfType<T, V> = T extends object
 
 const FormContext = createContext<{
   errors: ZodIssue[];
-  validateErrors: () => void;
+  touched: Record<string, true>;
+  isAllTouched: boolean;
+  validateErrors: (name: string) => void;
 }>({
   errors: [],
+  touched: {},
+  isAllTouched: false,
   validateErrors: () => {},
 });
 
@@ -43,29 +48,50 @@ export function useForm<
   ) => Promise<ActionState<TPayload, TResult>>,
   validator: TSchema
 ) {
-  const [state, dispatch] = useFormState(action, { status: "initial" });
+  const [state, setState] = useState<ActionState<TPayload, TResult>>({
+    status: "initial",
+  });
 
   const [form] = useState(() => {
     function Form(
       props: FormHTMLAttributes<HTMLFormElement> & { children: ReactNode }
     ) {
+      const [state, dispatch] = useFormState(action, { status: "initial" });
+
       const formRef = useRef<HTMLFormElement>(null);
       const [errors, setErrors] = useState<ZodIssue[]>(
         state.status === "error" ? state.errors : []
       );
 
-      const validateErrors = useCallback(() => {
-        const formData = new FormData(formRef.current!);
-        const validation = zfd.formData(validator).safeParse(formData);
-        if (validation.success) {
-          setErrors([]);
-        } else {
-          setErrors(validation.error.errors);
+      const [touched, setTouched] = useState<Record<string, true>>({});
+      const isAllTouched = state.status !== "initial";
+
+      const validateErrors = useCallback(
+        (name: string) => {
+          setTouched((prev) => ({ ...prev, [name]: true }));
+
+          const formData = new FormData(formRef.current!);
+          const validation = zfd.formData(validator).safeParse(formData);
+          if (validation.success) {
+            setErrors([]);
+          } else {
+            setErrors(validation.error.errors);
+          }
+        },
+        [validator, setErrors]
+      );
+
+      useEffect(() => {
+        setState(state);
+        if (state.status === "error") {
+          setErrors(state.errors);
         }
-      }, [validator, setErrors]);
+      }, [setState, state]);
 
       return (
-        <FormContext.Provider value={{ errors, validateErrors }}>
+        <FormContext.Provider
+          value={{ errors, isAllTouched, touched, validateErrors }}
+        >
           <form {...props} action={dispatch} ref={formRef}>
             {props.children}
           </form>
@@ -84,7 +110,8 @@ export function useForm<
           id={props.name}
           {...props}
           name={props.name}
-          onChange={validateErrors}
+          onChange={() => validateErrors(props.name)}
+          onBlur={() => validateErrors(props.name)}
         />
       );
     }
@@ -101,7 +128,7 @@ export function useForm<
           type="checkbox"
           {...props}
           name={props.name}
-          onChange={validateErrors}
+          onChange={() => validateErrors(props.name)}
         />
       );
     }
@@ -117,7 +144,7 @@ export function useForm<
           id={props.name}
           {...props}
           name={props.name}
-          onChange={validateErrors}
+          onChange={() => validateErrors(props.name)}
         />
       );
     }
@@ -129,7 +156,11 @@ export function useForm<
     ) {
       const { validateErrors } = useContext(FormContext);
       return (
-        <textarea {...props} name={props.name} onChange={validateErrors} />
+        <textarea
+          {...props}
+          name={props.name}
+          onChange={() => validateErrors(props.name)}
+        />
       );
     }
 
@@ -154,7 +185,7 @@ export function useForm<
             name={name}
             type="hidden"
             value={JSON.stringify(value)}
-            onChange={validateErrors}
+            onChange={() => validateErrors(name)}
           />
           {render({ value, setValue })}
         </>
@@ -166,7 +197,7 @@ export function useForm<
         name: PathsOfType<TPayload, any>;
       } & HTMLAttributes<HTMLParagraphElement>
     ) {
-      const { errors } = useContext(FormContext);
+      const { errors, isAllTouched, touched } = useContext(FormContext);
       const nameErrors = errors.map((error) => ({
         ...error,
         name: error.path.join("."),
@@ -174,6 +205,8 @@ export function useForm<
       const messages = nameErrors.filter((error) =>
         error.name.startsWith(props.name)
       );
+      if (!touched[props.name] && !isAllTouched) return null;
+
       return messages.map((error) => (
         <p key={error.name} {...props}>
           {error.message}
