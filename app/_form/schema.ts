@@ -4,6 +4,7 @@ import { zfd } from "zod-form-data";
 export const createUserSchema = z.object({
   email: zfd.text(),
   password: zfd.text(),
+  avatar: zfd.file(),
   details: z.object({
     username: zfd.text(),
     language: z.enum(["English", "Spanish", "French"]),

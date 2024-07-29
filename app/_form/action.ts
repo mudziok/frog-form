@@ -7,6 +7,6 @@ export const createUser = actionHandler({
   schema: createUserSchema,
   action: async ({ data }) => {
     console.log(data);
-    return data;
+    return { ...data, avatar: data.avatar.name };
   },
 });

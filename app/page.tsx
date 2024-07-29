@@ -49,7 +49,7 @@ function MetaField<
   className?: string;
 }) {
   return (
-    <div className={`p-2 group ${className}`}>
+    <div className={`p-2 group ${className} w-full`}>
       <legend className="block mb-2 text-sm font-medium text-gray-900 dark:text-white group-has-[p]:text-red-600">
         {label}
       </legend>
@@ -161,6 +161,16 @@ export default function Home() {
           username: "details.username",
         }}
       />
+
+      <div className="border rounded-md flex w-full">
+        <MetaField f={f} label="Avatar" name="avatar">
+          <f.Input
+            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+            name="avatar"
+            type="file"
+          />
+        </MetaField>
+      </div>
 
       <MetaField
         f={f}
