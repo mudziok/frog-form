@@ -162,42 +162,38 @@ export default function Home() {
         }}
       />
 
-      <div className="border rounded-md flex w-full">
+      <div className="border rounded-md flex w-full flex-col">
         <MetaField f={f} label="Avatar" name="avatar">
           <f.Input
-            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:ring-blue-500 file:!bg-blue-700"
             name="avatar"
             type="file"
           />
         </MetaField>
-      </div>
 
-      <MetaField
-        f={f}
-        name="details.interests"
-        label="Interests"
-        className="flex-1 border rounded-md"
-      >
-        <div className="flex flex-col gap-2">
-          {createUserSchema.shape.details.shape.interests
-            .innerType()
-            .element.options.map((value) => (
-              <div className="flex items-center" key={value}>
-                <f.Checkbox
-                  name="details.interests"
-                  value={value}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />
-                <label
-                  htmlFor={value}
-                  className="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                >
-                  {value}
-                </label>
-              </div>
-            ))}
-        </div>
-      </MetaField>
+        <MetaField f={f} name="details.interests" label="Interests">
+          <div className="flex flex-col gap-2">
+            {createUserSchema.shape.details.shape.interests
+              .innerType()
+              .element.options.map((value) => (
+                <div className="flex items-center" key={value}>
+                  <f.Checkbox
+                    name="details.interests"
+                    value={value}
+                    id={`details.interests-${value}`}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <label
+                    htmlFor={`details.interests-${value}`}
+                    className="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+                  >
+                    {value}
+                  </label>
+                </div>
+              ))}
+          </div>
+        </MetaField>
+      </div>
 
       <f.Submit className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 cursor-pointer" />
 
